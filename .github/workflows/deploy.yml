@@ -13,7 +13,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --- Run Tests Before Deploying ---
+      - name: Install and Test Server
+        working-directory: ./server
+        run: |
+          npm ci
+          npm test
+
+      - name: Install and Test Client
+        working-directory: ./client
+        run: |
+          npm ci
+          npm test
+
       - name: Deploy to EC2
+        if: success() # Only run if tests passed
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
