@@ -1,0 +1,55 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Navigate to project directory
+            cd /home/ubuntu/shopsmart-main || git clone https://github.com/Harsh-sh7/ShopSmart.git /home/ubuntu/shopsmart-main && cd /home/ubuntu/shopsmart-main
+
+            # Pull latest changes
+            git pull origin main
+
+            # Install PM2 globally if not already installed
+            if ! command -v pm2 &> /dev/null; then
+                sudo npm install -g pm2
+            fi
+
+            # --- Backend Deployment ---
+            cd server
+            npm install
+            
+            # Start or Restart application with PM2
+            if pm2 describe shopsmart-server > /dev/null; then
+                pm2 restart shopsmart-server
+            else
+                pm2 start src/index.js --name shopsmart-server
+            fi
+            
+            # Save PM2 process list
+            pm2 save
+
+            # --- Frontend Deployment ---
+            cd ../client
+            npm install
+            npm run build
+            
+            # Copy build files to Nginx web root (assuming Nginx is installed and configured)
+            # Ensure the user has permissions or use sudo
+            sudo cp -r dist/* /var/www/html/
