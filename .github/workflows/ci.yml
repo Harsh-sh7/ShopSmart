@@ -7,12 +7,37 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
 
-      - name: Run a command
-        run: echo "GitHub Actions is working"
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+
+    # --- Server Setup & Test ---
+    - name: Install Server Dependencies
+      working-directory: ./server
+      run: npm ci
+
+    - name: Run Server Tests
+      working-directory: ./server
+      run: npm test
+
+    # --- Client Setup & Test ---
+    - name: Install Client Dependencies
+      working-directory: ./client
+      run: npm ci
+
+    - name: Run Client Tests
+      working-directory: ./client
+      run: npm test
