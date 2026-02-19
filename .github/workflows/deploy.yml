@@ -39,20 +39,41 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Navigate to project directory
-            cd /home/ubuntu/shopsmart-main || git clone https://github.com/Harsh-sh7/ShopSmart.git /home/ubuntu/shopsmart-main && cd /home/ubuntu/shopsmart-main
+            # --- Install Prerequisites (Node.js) if missing ---
+            if ! command -v node &> /dev/null; then
+                echo "Installing Node.js 20.x..."
+                curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                sudo apt-get install -y nodejs
+            fi
 
-            # Pull latest changes
-            git pull origin main
+            # Check versions
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
 
+            # --- Navigate to Project ---
+            # Define target directory
+            TARGET_DIR="/home/${{ secrets.EC2_USERNAME }}/shopsmart-main"
+            
+            if [ -d "$TARGET_DIR" ]; then
+                echo "Directory exists. Pulling latest code..."
+                cd "$TARGET_DIR"
+                git pull origin main
+            else
+                echo "Cloning repository..."
+                git clone https://github.com/Harsh-sh7/ShopSmart.git "$TARGET_DIR"
+                cd "$TARGET_DIR"
+            fi
+
+            # --- Setup Global Tools ---
             # Install PM2 globally if not already installed
             if ! command -v pm2 &> /dev/null; then
                 sudo npm install -g pm2
             fi
 
             # --- Backend Deployment ---
+            echo "Deploying Backend..."
             cd server
-            npm install
+            npm ci --production
             
             # Start or Restart application with PM2
             if pm2 describe shopsmart-server > /dev/null; then
@@ -65,10 +86,18 @@ jobs:
             pm2 save
 
             # --- Frontend Deployment ---
+            echo "Deploying Frontend..."
             cd ../client
-            npm install
+            npm ci
             npm run build
             
-            # Copy build files to Nginx web root (assuming Nginx is installed and configured)
-            # Ensure the user has permissions or use sudo
+            # Copy build files to Nginx web root
+            # Ensure proper permissions and directory existence
+            sudo mkdir -p /var/www/html
+            echo "Copying files to /var/www/html..."
             sudo cp -r dist/* /var/www/html/
+            
+            # Restart Nginx if installed (optional, to ensure it serves new files)
+            if command -v nginx &> /dev/null; then
+                sudo systemctl restart nginx
+            fi
