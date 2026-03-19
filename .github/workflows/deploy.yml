@@ -33,7 +33,7 @@ jobs:
 
       - name: Deploy to EC2
         if: success() # Only run if tests passed
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
