@@ -10,13 +10,15 @@
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\"",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.43.0",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^15.0.0",
     "@types/react": "^18.2.66",
