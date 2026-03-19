@@ -1,0 +1,103 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --- Run Tests Before Deploying ---
+      - name: Install and Test Server
+        working-directory: ./server
+        run: |
+          npm ci
+          npm test
+
+      - name: Install and Test Client
+        working-directory: ./client
+        run: |
+          npm ci
+          npm test
+
+      - name: Deploy to EC2
+        if: success() # Only run if tests passed
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # --- Install Prerequisites (Node.js) if missing ---
+            if ! command -v node &> /dev/null; then
+                echo "Installing Node.js 20.x..."
+                curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                sudo apt-get install -y nodejs
+            fi
+
+            # Check versions
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
+
+            # --- Navigate to Project ---
+            # Define target directory
+            TARGET_DIR="/home/${{ secrets.EC2_USERNAME }}/shopsmart-main"
+            
+            if [ -d "$TARGET_DIR" ]; then
+                echo "Directory exists. Pulling latest code..."
+                cd "$TARGET_DIR"
+                git pull origin main
+            else
+                echo "Cloning repository..."
+                git clone https://github.com/Harsh-sh7/ShopSmart.git "$TARGET_DIR"
+                cd "$TARGET_DIR"
+            fi
+
+            # --- Setup Global Tools ---
+            # Install PM2 globally if not already installed
+            if ! command -v pm2 &> /dev/null; then
+                sudo npm install -g pm2
+            fi
+
+            # --- Backend Deployment ---
+            echo "Deploying Backend..."
+            cd server
+            npm ci --production
+            
+            # Start or Restart application with PM2
+            if pm2 describe shopsmart-server > /dev/null; then
+                pm2 restart shopsmart-server
+            else
+                pm2 start src/index.js --name shopsmart-server
+            fi
+            
+            # Save PM2 process list
+            pm2 save
+
+            # --- Frontend Deployment ---
+            echo "Deploying Frontend..."
+            cd ../client
+            npm ci
+            npm run build
+            
+            # Copy build files to Nginx web root
+            # Ensure proper permissions and directory existence
+            sudo mkdir -p /var/www/html
+            echo "Copying files to /var/www/html..."
+            sudo cp -r dist/* /var/www/html/
+            
+            # Restart Nginx if installed (optional, to ensure it serves new files)
+            if command -v nginx &> /dev/null; then
+                sudo systemctl restart nginx
+            fi

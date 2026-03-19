@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+
+    # --- Server Setup, Lint & Test ---
+    - name: Install Server Dependencies
+      working-directory: ./server
+      run: npm ci
+
+    - name: Lint Server
+      working-directory: ./server
+      run: npm run lint
+
+    - name: Run Server Tests
+      working-directory: ./server
+      run: npm test
+
+    # --- Client Setup, Lint & Test ---
+    - name: Install Client Dependencies
+      working-directory: ./client
+      run: npm ci
+
+    - name: Lint Client
+      working-directory: ./client
+      run: npm run lint
+
+    - name: Run Client Tests
+      working-directory: ./client
+      run: npm test
