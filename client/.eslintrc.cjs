@@ -15,9 +15,17 @@ module.exports = {
     ecmaFeatures: { jsx: true },
   },
   plugins: ["react", "react-refresh"],
+  ignorePatterns: ["e2e/", "playwright.config.js"],
   settings: {
     react: { version: "18.2" },
   },
+  overrides: [
+    {
+      files: ["**/*.test.jsx", "**/*.test.js", "src/setupTests.js"],
+      env: { node: true },
+      globals: { global: "readonly" },
+    },
+  ],
   rules: {
     "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     "react/prop-types": "off",
