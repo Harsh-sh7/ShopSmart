@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopsmart-backend
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - NODE_ENV=development
+    volumes:
+      - ./server/src:/app/src
+    # Override standard start command to run with nodemon for live-reloading
+    command: npm run dev
+
+  frontend:
+    image: node:20
+    container_name: shopsmart-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+      - "4173:4173"
+    environment:
+      - VITE_API_URL=http://localhost:5001
+    volumes:
+      - ./client:/app
+    # Install dependencies on the fly and start vite server with network access
+    command: /bin/sh -c "npm install && npm run dev -- --host 0.0.0.0"
