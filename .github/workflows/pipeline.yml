@@ -102,7 +102,8 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: shopsmart-v2-repo
+          ECR_REPOSITORY: shopsmart-v2-repo-e1750313
+
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -113,31 +114,35 @@ jobs:
 
       - name: Download task definition
         run: |
-          aws ecs describe-task-definition --task-definition shopsmart-v2-task --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition shopsmart-v2-task-e1750313 --query taskDefinition > task-definition.json
+
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: task-definition.json
-          container-name: shopsmart-v2-container
+          container-name: shopsmart-v2-container-e1750313
+
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: shopsmart-v2-service
-          cluster: shopsmart-v2-cluster
+          service: shopsmart-v2-service-e1750313
+          cluster: shopsmart-v2-cluster-e1750313
+
           wait-for-service-stability: true
 
       - name: Deployment Diagnostics (on Failure)
         if: failure()
         run: |
           echo "Deployment failed to stabilize. Fetching recent task diagnostics..."
-          TASK_ARN=$(aws ecs list-tasks --cluster shopsmart-v2-cluster --service-name shopsmart-v2-service --query "taskArns[0]" --output text)
+          TASK_ARN=$(aws ecs list-tasks --cluster shopsmart-v2-cluster-e1750313 --service-name shopsmart-v2-service-e1750313 --query "taskArns[0]" --output text)
           if [ "$TASK_ARN" != "None" ]; then
-            aws ecs describe-tasks --cluster shopsmart-v2-cluster --tasks $TASK_ARN --query "tasks[0].{TaskArn:taskArn,LastStatus:lastStatus,StoppedReason:stoppedReason,Containers:containers[].{Name:name,LastStatus:lastStatus,ExitCode:exitCode,Reason:reason}}"
+            aws ecs describe-tasks --cluster shopsmart-v2-cluster-e1750313 --tasks $TASK_ARN --query "tasks[0].{TaskArn:taskArn,LastStatus:lastStatus,StoppedReason:stoppedReason,Containers:containers[].{Name:name,LastStatus:lastStatus,ExitCode:exitCode,Reason:reason}}"
+
           else
             echo "No tasks found for the service."
           fi

@@ -25,7 +25,8 @@ terraform {
 # ECR REPOSITORY
 # ------------------------------------------------------------------------------
 resource "aws_ecr_repository" "app_repo" {
-  name                 = "${var.project_name}-repo-${random_id.bucket_id.hex}"
+  name                 = "${var.project_name}-repo-final"
+
 
   image_tag_mutability = "MUTABLE"
   force_delete         = true
@@ -74,7 +75,8 @@ output "mgmt_server_public_ip" {
 # ECS CLUSTER
 # ------------------------------------------------------------------------------
 resource "aws_ecs_cluster" "app_cluster" {
-  name = "${var.project_name}-cluster"
+  name = "${var.project_name}-cluster-${random_id.bucket_id.hex}"
+
 }
 
 # ------------------------------------------------------------------------------
@@ -88,7 +90,8 @@ data "aws_iam_role" "lab_role" {
 # CLOUDWATCH LOG GROUP
 # ------------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/${var.project_name}-${random_id.bucket_id.hex}"
+  name              = "/ecs/${var.project_name}-final"
+
 
   retention_in_days = 30
 }
@@ -97,7 +100,9 @@ resource "aws_cloudwatch_log_group" "ecs_logs" {
 # ECS TASK DEFINITION
 # ------------------------------------------------------------------------------
 resource "aws_ecs_task_definition" "app_task" {
-  family                   = "${var.project_name}-task"
+  family                   = "${var.project_name}-task-final"
+
+
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
@@ -113,7 +118,9 @@ resource "aws_ecs_task_definition" "app_task" {
   # For pure automation, it's common to use a public placeholder image initially.
   container_definitions = jsonencode([
     {
-      name      = "${var.project_name}-container"
+      name      = "${var.project_name}-container-final"
+
+
       image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
       essential = true
       portMappings = [
@@ -150,7 +157,8 @@ data "aws_subnets" "default" {
 }
 
 resource "aws_security_group" "ecs_sg" {
-  name        = "${var.project_name}-ecs-sg-${random_id.bucket_id.hex}"
+  name        = "${var.project_name}-ecs-sg-final"
+
 
   description = "Allow inbound traffic on app port"
   vpc_id      = data.aws_vpc.default.id
@@ -181,7 +189,9 @@ resource "aws_security_group" "ecs_sg" {
 # ECS SERVICE
 # ------------------------------------------------------------------------------
 resource "aws_ecs_service" "app_service" {
-  name            = "${var.project_name}-service"
+  name            = "${var.project_name}-service-final"
+
+
   cluster         = aws_ecs_cluster.app_cluster.id
   task_definition = aws_ecs_task_definition.app_task.arn
   desired_count   = 1
