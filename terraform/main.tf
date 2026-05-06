@@ -9,16 +9,15 @@ provider "aws" {
 # To make this fully idempotent across multiple GitHub Action runs, you MUST
 # create an S3 bucket in AWS first, then uncomment and update the block below:
 # ------------------------------------------------------------------------------
-/*
 terraform {
   backend "s3" {
-    bucket         = "shopsmart-v2-storage-40c9dfe6"
+    bucket         = "shopsmart-v2-storage-e1750313"
     key            = "shopsmart/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
   }
 }
-*/
+
 
 
 
@@ -26,7 +25,8 @@ terraform {
 # ECR REPOSITORY
 # ------------------------------------------------------------------------------
 resource "aws_ecr_repository" "app_repo" {
-  name                 = "${var.project_name}-repo"
+  name                 = "${var.project_name}-repo-${random_id.bucket_id.hex}"
+
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -88,7 +88,8 @@ data "aws_iam_role" "lab_role" {
 # CLOUDWATCH LOG GROUP
 # ------------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/${var.project_name}"
+  name              = "/ecs/${var.project_name}-${random_id.bucket_id.hex}"
+
   retention_in_days = 30
 }
 
@@ -149,7 +150,8 @@ data "aws_subnets" "default" {
 }
 
 resource "aws_security_group" "ecs_sg" {
-  name        = "${var.project_name}-ecs-sg"
+  name        = "${var.project_name}-ecs-sg-${random_id.bucket_id.hex}"
+
   description = "Allow inbound traffic on app port"
   vpc_id      = data.aws_vpc.default.id
 
