@@ -9,6 +9,7 @@ provider "aws" {
 # To make this fully idempotent across multiple GitHub Action runs, you MUST
 # create an S3 bucket in AWS first, then uncomment and update the block below:
 # ------------------------------------------------------------------------------
+/*
 terraform {
   backend "s3" {
     bucket         = "shopsmart-v2-storage-40c9dfe6"
@@ -17,6 +18,8 @@ terraform {
     encrypt        = true
   }
 }
+*/
+
 
 
 # ------------------------------------------------------------------------------
