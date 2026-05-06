@@ -75,7 +75,8 @@ output "mgmt_server_public_ip" {
 # ECS CLUSTER
 # ------------------------------------------------------------------------------
 resource "aws_ecs_cluster" "app_cluster" {
-  name = "${var.project_name}-cluster-${random_id.bucket_id.hex}"
+  name = "${var.project_name}-cluster-final"
+
 
 }
 
